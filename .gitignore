@@ -164,3 +164,4 @@ data/.DS_Store
 .qodo
 api/resources/__pycache__
 api/utils/__pycache__
+.DS_Store
