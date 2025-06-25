@@ -3,8 +3,8 @@ from flask_restful import Api
 import os
 import logging as logs
 from resources.data_upload import DataUpload
-#from resources.hires_by_quarter import HiresByQuarter
-#from resources.department_hires import DepartmentHires
+from resources.hires_by_quarter import HiresByQuarter
+from resources.department_hires import DepartmentHires
 from utils.duckdb_ddl_runner import DuckDBDDLRunner
 
 app = Flask(__name__)
@@ -20,8 +20,8 @@ app.register_blueprint(bp, url_prefix="/api")
 
 
 api.add_resource(DataUpload, '/upload')
-#api.add_resource(HiresByQuarter, '/reports/hires_by_quarter/<int:year>')
-#api.add_resource(DepartmentHires, '/reports/department_hires/<int:year>')
+api.add_resource(HiresByQuarter, '/reports/hires_by_quarter/<int:year>')
+api.add_resource(DepartmentHires, '/reports/department_hires/<int:year>')
 
 # Ejecutar los DDL al iniciar la app
 ddl_runner = DuckDBDDLRunner()
