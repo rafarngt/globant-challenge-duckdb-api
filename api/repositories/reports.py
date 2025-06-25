@@ -45,14 +45,15 @@ class Reports:
           ORDER BY
               department, job;
         """
+        formatted_query = query.replace('\n', ' ').replace('  ', ' ').replace('\t', ' ')
+
         db_path = os.environ.get('DUCKDB_PATH', '../data/duckdb/db/data.db')
         con = duckdb.connect(db_path)
-        
-        formatted_query = query.replace('\n', ' ').replace('  ', ' ').replace('\t', ' ')
         con.execute(formatted_query)
         result = con.fetchall()
+        columns = [desc[0] for desc in con.description]
         con.close()
-        return result
+        return result, columns
       
     
     @staticmethod
@@ -88,11 +89,10 @@ class Reports:
         ORDER BY
           dh.hire_count DESC;
         """
+        formatted_query = query.replace('\n', ' ').replace('  ', ' ').replace('\t', ' ')
 
         db_path = os.environ.get('DUCKDB_PATH', '../data/duckdb/db/data.db')
         con = duckdb.connect(db_path)
-        
-        formatted_query = query.replace('\n', ' ').replace('  ', ' ').replace('\t', ' ')
         con.execute(formatted_query)
         result = con.fetchall()
         columns = [desc[0] for desc in con.description]
