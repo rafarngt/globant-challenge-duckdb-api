@@ -161,3 +161,6 @@ cython_debug/
 
 local_airflow/
 data/.DS_Store
+.qodo
+api/resources/__pycache__
+api/utils/__pycache__
