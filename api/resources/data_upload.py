@@ -4,6 +4,7 @@ import duckdb
 import werkzeug
 from werkzeug.utils import secure_filename
 from utils.utils_funtions import UtilsFuntions as utilsFuntions
+from utils.duckdb_runner import DuckDBRunner as duckDBRunner
 import os
 import pandas as pd
 import time
@@ -42,8 +43,8 @@ class DataUpload(Resource):
             df_cleaned, df_removed = utilsFuntions.remove_rows_with_nan(df)
 
             # Crear tabla si no existe e insertar datos por lotes
-            db_path = os.environ.get('DUCKDB_PATH', '../data/duckdb/db/data.db')
-            con = duckdb.connect(db_path)
+            #db_path = os.environ.get('DUCKDB_PATH', '../data/duckdb/db/data.db')
+            #con = duckdb.connect(db_path)
             batch_size = 1000
             total_rows = len(df_cleaned)
             print(f"Total de filas: {total_rows}")
@@ -52,18 +53,20 @@ class DataUpload(Resource):
                 end = min(start + batch_size, total_rows)
                 batch = df_cleaned.iloc[start:end]
                 placeholders = ','.join(['?'] * len(batch.columns))
-                con.executemany(
-                    f"INSERT INTO {table_name} VALUES ({placeholders})",
-                    batch.values.tolist()
-                )
-            con.close()
+                duckDBRunner.executemany_query(f"INSERT INTO {table_name} VALUES ({placeholders})",batch.values.tolist())
+                #con.executemany()
+            #con.close()
 
             # Guardar filas removidas localmente si existen
             if len(df_removed) > 0:
                 removed_path = f"../data/csv/removed_{filename}_{time.time()}.csv" 
                 df_removed.to_csv(removed_path, index=False)
 
-            return {'message': f'Registros insertados en {table_name}', 'filas_removidas': len(df_removed)}
+            return {
+                'message': f'Registros insertados en {table_name}', 
+                'filas_agregadas': total_rows , 
+                'filas_removidas': len(df_removed)
+            }
         
         except Exception as e:
             return {'message': f'Error al procesar el archivo: {str(e)}'}, 500
