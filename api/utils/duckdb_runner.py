@@ -25,9 +25,9 @@ class DuckDBRunner:
         con = duckdb.connect(db_path)
         con.execute(query)
         result = con.fetchall()
+        description = con.description
         con.close()
-
-        return result
+        return result, description
     
         
     @staticmethod

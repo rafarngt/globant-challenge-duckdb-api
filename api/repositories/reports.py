@@ -1,5 +1,6 @@
 import os
 import duckdb
+from utils.duckdb_runner import DuckDBRunner as duckDBRunner
 class Reports:
 
     @staticmethod
@@ -46,13 +47,9 @@ class Reports:
               department, job;
         """
         formatted_query = query.replace('\n', ' ').replace('  ', ' ').replace('\t', ' ')
-
-        db_path = os.environ.get('DUCKDB_PATH', '../data/duckdb/db/data.db')
-        con = duckdb.connect(db_path)
-        con.execute(formatted_query)
-        result = con.fetchall()
-        columns = [desc[0] for desc in con.description]
-        con.close()
+        result, description = duckDBRunner.execute_query(formatted_query)
+        columns = [desc[0] for desc in description]
+        
         return result, columns
       
     
@@ -90,11 +87,7 @@ class Reports:
           dh.hire_count DESC;
         """
         formatted_query = query.replace('\n', ' ').replace('  ', ' ').replace('\t', ' ')
-
-        db_path = os.environ.get('DUCKDB_PATH', '../data/duckdb/db/data.db')
-        con = duckdb.connect(db_path)
-        con.execute(formatted_query)
-        result = con.fetchall()
-        columns = [desc[0] for desc in con.description]
-        con.close()
+        result, description = duckDBRunner.execute_query(formatted_query)
+        columns = [desc[0] for desc in description]
+        
         return result, columns
