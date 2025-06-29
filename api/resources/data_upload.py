@@ -4,9 +4,10 @@ import duckdb
 import werkzeug
 from werkzeug.utils import secure_filename
 from utils.utils_funtions import UtilsFuntions as utilsFuntions
+from utils.duckdb_runner import DuckDBRunner as duckDBRunner
 import os
 import pandas as pd
-
+import time
 
 class DataUpload(Resource):
     """API resource for uploading data to DuckDB."""
@@ -24,7 +25,7 @@ class DataUpload(Resource):
         table_name = args['table_name']
 
         if not file:
-            return {'message': 'No se encontró ningún archivo'}, 400
+            return {'message': 'No se encontro ningun archivo'}, 400
 
         filename = secure_filename(file.filename)
         extension = os.path.splitext(filename)[1]
@@ -32,7 +33,7 @@ class DataUpload(Resource):
 
         try:
             if not utilsFuntions.validate_table_name(table_name):
-                return {'message': f'El nombre de tabla {table_name} no es válido'}, 400
+                return {'message': f'El nombre de tabla {table_name} no es valido'}, 400
 
             if extension != '.csv':
                 return {'message': 'Formato de archivo no compatible'}, 400
@@ -41,18 +42,28 @@ class DataUpload(Resource):
             df = pd.read_csv(file, header=None)
             df_cleaned, df_removed = utilsFuntions.remove_rows_with_nan(df)
 
-            # Crear tabla si no existe e insertar datos
-            db_path = os.environ.get('DUCKDB_PATH', '../data/duckdb/db/data.db')
-            con = duckdb.connect(db_path)
-            con.execute(f"INSERT INTO {table_name} SELECT * FROM df_cleaned")
-            con.close()
+            # Crear tabla si no existe e insertar datos por lotes
+            batch_size = 1000
+            total_rows = len(df_cleaned)
+            print(f"Total de filas: {total_rows}")
+            for start in range(0, total_rows, batch_size):
+                logs.info(f"Insertando datos por lotes de {start} a {start + batch_size}")
+                end = min(start + batch_size, total_rows)
+                batch = df_cleaned.iloc[start:end]
+                placeholders = ','.join(['?'] * len(batch.columns))
+                duckDBRunner.executemany_query(f"INSERT INTO {table_name} VALUES ({placeholders})",batch.values.tolist())
 
             # Guardar filas removidas localmente si existen
             if len(df_removed) > 0:
-                removed_path = f"removed_{filename}"
+                removed_dir = os.environ.get('REMOVED_FILES_PATH', '../data/csv/')
+                removed_path = f"{removed_dir}removed_{filename}_{time.time()}.csv" 
                 df_removed.to_csv(removed_path, index=False)
 
-            return {'message': f'Registros insertados en {table_name}', 'filas_removidas': len(df_removed)}
+            return {
+                'message': f'Registros insertados en {table_name}', 
+                'filas_agregadas': total_rows , 
+                'filas_removidas': len(df_removed)
+            }
         
         except Exception as e:
             return {'message': f'Error al procesar el archivo: {str(e)}'}, 500

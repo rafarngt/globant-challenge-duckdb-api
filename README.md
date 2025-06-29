@@ -1,202 +1,410 @@
-This repository is a challenge for the Data Engineer role, which uses the following technologies and services: 
+# Globant Challenge - DuckDB API
 
-- [x] GCP cloud
-    - GCS (Google Cloud Storage)
-    - Cloud Run
-    - Bigquery
-    - Composer (optional) 
-- [x] Python 3.x
-- [x] Flask_RESTful API
-- [x] Pandas
+This repository contains a REST API developed in Python with Flask that uses DuckDB as a database for processing and analyzing employee hiring data.
 
-### Project directory structure
+## 🏗️ System Architecture
 
->```env
->|- api/ Application module (API REST)
->| |- repositories/          folder that contains classes in charge of querying the BQ
->| |- |.. reports.py             file contains the Report class, responsible for having the functions that retrieve data for the reporting endpoints
->| |- resources/             folder containing the classes defined in each of the endpoints
->| |- |.. data_upload.py            definition of the endpoints for /api/upload (bulk file upload)    
->| |- |.. department_hires.py        definition of the endpoints for /api/reports/hires_by_quarter/{year}
->| |- |.. hires_by_quarter.py          definition of the endpoints for /api/reports/hires_by_quarter/{year}
->| |- utils/                 folder contains utility functions 
->| |- |.. utils.py           
->| |- app.py           main project file
->| |- requirements.txt         Libraries to install 
->|- dags/  contains dag for migration, backup and restore tables
->|- dags/backups_bigquery_to_gcs.py  DAG for create backups of BQ tables
->|- dags/data_migration_dag.py  DAG for create migration of initial tablas in BQ
->|- dags/load_gcs_to_bigquery.py DAG to restore Backup in BQ
->|- data/csv/.. .csv files
->|- data/ddl/.. .sql ddl files
->|- data/dml/.. .sql dml files
->|- data/schema/.. json schemas for BQ
->|- doc/.. Documentions
->|.. .gitignore
->|.. README.md
->```
-# Architeceture: 
+### General Architecture Diagram
 
-# Pre requeriments: 
-- [X] Have Docker and Docker Compose Installed
-- [X] Have Airflow with docker or Composer Instance
-- [X] Have a GCP Account
-- [X] for GCP:
-    - Create a Service Account with these roles: 
-        - BigQuery Admin
-        - Composer Administrator
-        - Storage Admin
-        - Storage Object Admin
-    - Generate service account JSON key
+```mermaid
+graph TB
+    subgraph "Client"
+        A[HTTP Client]
+    end
+    
+    subgraph "API Layer"
+        B[Flask App]
+        C[Flask-RESTful]
+        D[Resources/Endpoints]
+    end
+    
+    subgraph "Business Logic"
+        E[Repositories]
+        F[Utils Functions]
+    end
+    
+    subgraph "Data Layer"
+        G[DuckDB Database]
+        H[CSV Files]
+    end
+    
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+```
 
-# QuickStart
+### API-DuckDB Interaction Diagram
 
-### Local Usage
-Create a virtual environment by running:
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as Flask API
+    participant Resource as Resource Layer
+    participant Repo as Repository
+    participant DuckDB as DuckDB Engine
+    participant File as CSV File
+    
+    Client->>API: POST /api/upload
+    API->>Resource: DataUpload.post()
+    Resource->>File: Read CSV
+    Resource->>DuckDB: INSERT INTO table
+    DuckDB-->>Resource: Success
+    Resource-->>API: JSON Response
+    API-->>Client: 200 OK
+    
+    Client->>API: GET /api/reports/...
+    API->>Resource: Report.get()
+    Resource->>Repo: Execute Query
+    Repo->>DuckDB: SELECT query
+    DuckDB-->>Repo: Results
+    Repo-->>Resource: Formatted Data
+    Resource-->>API: JSON Response
+    API-->>Client: 200 OK
+```
 
->```shell
->python -m venv .venv
->
->```
+## 📁 Project Structure
 
-The virtual environment should be activated every time you start a new shell session before running subsequent commands:
+```
+globant-challenge-duckdb-api/
+├── api/                          # Main application module
+│   ├── app.py                    # Main Flask file
+│   ├── requirements.txt          # Python dependencies
+│   ├── Dockerfile               # Docker configuration
+│   ├── resources/               # API endpoints
+│   │   ├── data_upload.py       # Endpoint for uploading CSV files
+│   │   ├── hires_by_quarter.py  # Quarterly hiring report
+│   │   └── department_hires.py  # Department hiring report
+│   ├── repositories/            # Data access layer
+│   │   └── reports.py          # Class for report queries
+│   └── utils/                   # Utility functions
+│       ├── duckdb_runner.py     # Class for executing DDL and queries
+│       └── utils_functions.py   # Auxiliary functions
+├── data/                        # Data and schemas
+│   ├── csv/                     # Example CSV files
+│   └── duckdb/                  # DuckDB configuration
+│       ├── db/                  # DuckDB database
+│       ├── ddl/                 # Table creation scripts
+│   │   ├── departments.sql
+│   │   ├── jobs.sql
+│   │   └── hired_employees.sql
+│   │   └── dml/                 # Data manipulation scripts
+├── docs/                        # Additional documentation
+└── README.md                    # This file
+```
 
-> On Linux/MacOS:
-> ```shell
-> source .venv/bin/activate
-> ```
+## 🚀 Technologies Used
 
-> On Windows:
-> ```shell
-> .venv\Scripts\activate.bat
-> ```
+- **Python 3.x**: Main programming language
+- **Flask**: Web framework for REST API
+- **Flask-RESTful**: Extension for creating RESTful APIs
+- **DuckDB**: Embedded analytical database
+- **Pandas**: Data manipulation and analysis
+- **Docker**: Application containerization
+- **GCP Cloud Run**: Deployment platform
 
-set the GOOGLE_APPLICATION_CREDENTIALS variable
-> ```
-> export GOOGLE_APPLICATION_CREDENTIALS=/path/with/json_key.json
-> ```
-### Configure Airflow
+## 📋 Prerequisites
 
-To deploy Airflow on Docker Compose, you should fetch docker-compose.yaml.
-> ```shell
->curl -LfO 'https://airflow.apache.org/docs/apache-airflow/2.6.3/docker-compose.yaml'
-> ```
+### For Local Deployment
+- Python 3.8 or higher
+- pip (Python package manager)
+- Git
 
-create folders base
-> ```shell
-> mkdir -p ./dags ./logs ./plugins ./config
-> echo -e "AIRFLOW_UID=$(id -u)" > .env
-> ```
+### For GCP Deployment
+- Google Cloud Platform account
+- Google Cloud CLI installed
+- Docker installed
+- Administrator permissions in GCP project
 
-Initialize the database
+## 🛠️ Local Deployment without Docker
 
-> ```shell
-> docker compose up airflow-init
-> ```
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd globant-challenge-duckdb-api
+```
 
-go to the url http://127.0.0.1:8080/home in your browser
-login and password : airflow
+### 2. Create Virtual Environment
+```bash
+python -m venv .venv
+```
 
-for more informacion: https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html
+### 3. Activate Virtual Environment
 
-Configure Connection: 
-You need a connection to the BQ and GCP Storage services, so go to the `Admin->Connection` path and create a connection and type `GCP providers`, there load the `json key` created previously. 
+**On Linux/MacOS:**
+```bash
+source .venv/bin/activate
+```
 
-Configure Variable: 
-you also need to load the variables used by the different dags, so go to `Admin->Variables` and load the `variable.json` file found in the `dags` folder.
+**On Windows:**
+```bash
+.venv\Scripts\activate.bat
+```
 
-### Run Dags
+### 4. Install Dependencies
+```bash
+cd api
+pip install -r requirements.txt
+```
 
-to run the dags, you must load them into the dags folder previously created, after launching the airflow service, then wait a few minutes for the dags to appear in the list. 
+### 5. Run the Application
+```bash
+python app.py
+```
 
-### Run API
+The API will be available at: `http://localhost:8081`
 
-locate us inside the api folder: 
-> ```
-> cd api
-> ```
+### 6. Test the Endpoints
 
-install dependencies.
-> ```
-> pip install -r requitements.txt
-> ```
+**Upload CSV file:**
+```bash
+curl -X POST \
+  http://localhost:8081/api/upload \
+  -F "file=@/path/to/your/file.csv" \
+  -F "table_name=table_name"
+```
 
-run locally
-> ```
-> python app.py 
-> ```
+**Get quarterly hiring report:**
+```bash
+curl http://localhost:8081/api/reports/hires_by_quarter/2021
+```
 
-curls to test
-upload file endpoint: 
-> ```
-> curl --location 'http://127.0.0.1:8081/api/upload' \
-> --form 'file=@"/path/with/file/hired_employees.csv"'
-> ```
+**Get department hiring report:**
+```bash
+curl http://localhost:8081/api/reports/department_hires/2021
+```
 
-hires_by_quarter endpoint: 
-> ```
-> curl --location 'http://127.0.0.1:8081/api/reports/hires_by_quarter/2021'
-> ```
+## 🛠️ Local Deployment with Docker
 
-department_hires endpoint: 
-> ```
-> curl --location 'http://127.0.0.1:8081/api/reports/department_hires/2021'
-> ```
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd globant-challenge-duckdb-api
+```
 
+### 2. Build Docker Image
+```bash
+docker build -t duckdb-api -f api/Dockerfile .
+```
 
-### GCP Usage
-#### Cloud Storage (GCS):
-As an example, it is necessary to create the following buckets: 
-- `invalid_records-90c6f489`: contains the `failed_rows` folder, in this folder an `.avro` file is created with the records that fail at the moment of being loaded in Bigquery. 
-- `raw-data-8faddca5`: contains the folder structure `year={year}` inside this `month={month}`, and inside this `day={day}`, this with the idea of reflecting a daily data migration strategy. 
-path example: 
+### 3. Run Docker Container with Local Database
+```bash
+docker run -p 8081:8081 \
+  -v $(pwd)/data/duckdb/db:/app/data/duckdb/db \
+  -v $(pwd)/data/csv:/app/data/csv \
+  --name duckdb-api-container \
+  duckdb-api
+```
 
->```
-> raw-data-8faddca5/year=2023/mount=8/day=12
->```
+The API will be available at: `http://localhost:8081`
 
-inside this there are 3 main folders, one for each table, example: 
-> ```
-> Hired_employes/hired_employees.csv
-> Jobs/jobs.csv
-> Departments/departments.csv
-> ```
+### 4. Test the Endpoints
 
-- `tables-backups-66b307`: this bucket stores the different backups made by the dag `backup_bigquery_to_gcs.py`, each backup is stored in a folder with the `date` of execution, followed by the `name of the table` with extension `.avro`. 
-example: 
-> ```
-> gs://tables-backups-66b307/20230812/departments.avro
-> ```
+**Upload CSV file:**
+```bash
+curl -X POST \
+  http://localhost:8081/api/upload \
+  -F "file=@/path/to/your/file.csv" \
+  -F "table_name=table_name"
+```
 
-Note. if you want to replicate this you must create it with other names and make the change in the variables and environment to be used. 
+**Get quarterly hiring report:**
+```bash
+curl http://localhost:8081/api/reports/hires_by_quarter/2021
+```
 
-#### BiQuery:
+**Get department hiring report:**
+```bash
+curl http://localhost:8081/api/reports/department_hires/2021
+```
 
-The raw dataset must be created for the project. 
+### 5. Manage Docker Container
 
-#### Cloud RUN (API):
-create Image to container register: 
-> ```
-> gcloud builds submit --tag gcr.io/poc-globant-data/flask-api
-> ```
+**Stop the container:**
+```bash
+docker stop duckdb-api-container
+```
 
-deploy Api with Cloud Run:
-> ```
-> gcloud run services update flask-api --update-env-vars PROJECT_ID="poc-globant-data",BQ_DATASET="raw,GCS_BUCKET=invalid_records-90c6f489"
-> ```
+**Start the container again (data persists):**
+```bash
+docker start duckdb-api-container
+```
 
- curls: 
- Upload File Endpoint:
-> ```
-> curl --location 'https://flask-api-s5ubhcqi4q-ue.a.run.app/api/upload' --form 'file=@"/path/with/file/hired_employees.csv"'
-> ```
+**Remove container:**
+```bash
+docker rm duckdb-api-container
+```
 
-Hires by Quarter Endpoint:
-> ```
-> curl --location 'https://flask-api-s5ubhcqi4q-ue.a.run.app/api/reports/hires_by_quarter/2021'
-> ```
+**Remove container and image:**
+```bash
+docker rm duckdb-api-container
+docker rmi duckdb-api
+```
 
-Department Hires Endpoint:
-> ```
-> curl --location 'https://flask-api-s5ubhcqi4q-ue.a.run.app/api/reports/department_hires/2021'
-> ```
+## ☁️ GCP Cloud Run Deployment
+
+### 1. Configure Google Cloud CLI
+```bash
+gcloud auth login
+gcloud config set project <your-project-id>
+```
+
+### 2. Enable Required APIs
+```bash
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable run.googleapis.com
+```
+
+### 3. Build and Upload Image
+```bash
+cd api
+gcloud builds submit --tag gcr.io/<your-project-id>/duckdb-api
+```
+
+### 4. Deploy to Cloud Run
+```bash
+gcloud run deploy duckdb-api \
+  --image gcr.io/<your-project-id>/duckdb-api \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 8081
+```
+
+### 5. Configure Environment Variables (Optional)
+```bash
+gcloud run services update duckdb-api \
+  --update-env-vars DUCKDB_PATH="/tmp/data.db"
+```
+
+### 6. Get Service URL
+```bash
+gcloud run services describe duckdb-api --region us-central1 --format="value(status.url)"
+```
+
+### 7. Test the Deployment
+```bash
+# Replace <URL> with the URL obtained in the previous step
+curl -X POST \
+  <URL>/api/upload \
+  -F "file=@/path/to/your/file.csv" \
+  -F "table_name=employees"
+```
+
+## 📊 API Endpoints
+
+### POST /api/upload
+Uploads a CSV file and inserts it into the DuckDB database.
+
+**Parameters:**
+- `file`: CSV file (multipart/form-data)
+- `table_name`: Name of the table where to insert the data
+
+**Example response:**
+```json
+{
+  "message": "Records inserted in employees",
+  "filas_removidas": 5
+}
+```
+
+### GET /api/reports/hires_by_quarter/{year}
+Gets a quarterly hiring report for a specific year.
+
+**Parameters:**
+- `year`: Year for the report (e.g., 2021)
+
+**Example response:**
+```json
+[
+  {
+    "department": "Engineering",
+    "job": "Software Engineer",
+    "Q1": 10,
+    "Q2": 15,
+    "Q3": 8,
+    "Q4": 12
+  }
+]
+```
+
+### GET /api/reports/department_hires/{year}
+Gets a report of departments that hired more employees than the average for a specific year.
+
+**Parameters:**
+- `year`: Year for the report (e.g., 2021)
+
+**Example response:**
+```json
+[
+  {
+    "id": 1,
+    "department": "Engineering",
+    "hired": 45
+  }
+]
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+- `PORT`: Port where the application will run (default: 8081)
+- `DUCKDB_PATH`: Path to the DuckDB database file (default: ../data/duckdb/db/data.db)
+
+### Data Structure
+The application expects CSV files with the following structures:
+
+**departments.csv:**
+```csv
+id,department
+1,Engineering
+2,Sales
+```
+
+**jobs.csv:**
+```csv
+id,job
+1,Software Engineer
+2,Sales Representative
+```
+
+**hired_employees.csv:**
+```csv
+id,name,hire_datetime,department_id,job_id
+1,John Doe,2021-01-15T10:30:00Z,1,1
+```
+
+## 🐛 Troubleshooting
+
+### DuckDB Connection Error
+If you get a file lock error:
+```bash
+# Check processes using the database
+lsof | grep data.db
+# Kill the process if necessary
+kill <PID>
+```
+
+### GCP Permissions Error
+Make sure you have the following roles:
+- Cloud Run Admin
+- Cloud Build Editor
+- Storage Admin
+
+## 📝 Additional Notes
+
+- The application automatically creates tables in DuckDB on startup
+- CSV files are processed in batches of 1000 rows to optimize performance
+- Rows with NaN values are automatically removed and saved to a separate file
+- The DuckDB database is stored locally in the Cloud Run container (resets with each deploy)
+
+## 🤝 Contributing
+
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request 
