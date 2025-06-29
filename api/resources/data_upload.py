@@ -55,7 +55,8 @@ class DataUpload(Resource):
 
             # Guardar filas removidas localmente si existen
             if len(df_removed) > 0:
-                removed_path = f"../data/csv/removed_{filename}_{time.time()}.csv" 
+                removed_dir = os.environ.get('REMOVED_FILES_PATH', '../data/csv/')
+                removed_path = f"{removed_dir}removed_{filename}_{time.time()}.csv" 
                 df_removed.to_csv(removed_path, index=False)
 
             return {

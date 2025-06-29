@@ -3,6 +3,15 @@ FROM python:3.11-slim
 # Allow statements and log messages to immediately appear in the logs
 ENV PYTHONUNBUFFERED True
 
+# Set DuckDB path for Docker container
+ENV DUCKDB_PATH /app/data/duckdb/db/data.db
+
+# Set DuckDB DDL path for Docker container
+ENV DUCKDB_DDL_PATH /app/data/duckdb/ddl
+
+#Set REMOVED FILES PATH for Docker container
+ENV REMOVED_FILES_PATH /app/data/csv/
+
 # Copy local code to the container image.
 ENV APP_HOME /app
 WORKDIR $APP_HOME

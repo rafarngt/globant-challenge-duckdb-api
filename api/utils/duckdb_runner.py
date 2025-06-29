@@ -8,7 +8,7 @@ class DuckDBRunner:
     @staticmethod
     def run_all_ddls():
         db_path = os.environ.get('DUCKDB_PATH', '../data/duckdb/db/data.db')
-        ddl_dir = '../data/duckdb/ddl'
+        ddl_dir = os.environ.get('DUCKDB_DDL_PATH', '../data/duckdb/ddl')
         # create a connection to a file called 'file.db'
         con = duckdb.connect(db_path)
         ddl_files = get_ddl_files(ddl_dir)

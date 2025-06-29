@@ -119,6 +119,64 @@ globant-challenge-duckdb-api/
 - Docker installed
 - Administrator permissions in GCP project
 
+## 🛠️ Local Deployment without Docker
+
+### 1. Clone the Repository
+```bash
+git clone <repository-url>
+cd globant-challenge-duckdb-api
+```
+
+### 2. Create Virtual Environment
+```bash
+python -m venv .venv
+```
+
+### 3. Activate Virtual Environment
+
+**On Linux/MacOS:**
+```bash
+source .venv/bin/activate
+```
+
+**On Windows:**
+```bash
+.venv\Scripts\activate.bat
+```
+
+### 4. Install Dependencies
+```bash
+cd api
+pip install -r requirements.txt
+```
+
+### 5. Run the Application
+```bash
+python app.py
+```
+
+The API will be available at: `http://localhost:8081`
+
+### 6. Test the Endpoints
+
+**Upload CSV file:**
+```bash
+curl -X POST \
+  http://localhost:8081/api/upload \
+  -F "file=@/path/to/your/file.csv" \
+  -F "table_name=table_name"
+```
+
+**Get quarterly hiring report:**
+```bash
+curl http://localhost:8081/api/reports/hires_by_quarter/2021
+```
+
+**Get department hiring report:**
+```bash
+curl http://localhost:8081/api/reports/department_hires/2021
+```
+
 ## 🛠️ Local Deployment with Docker
 
 ### 1. Clone the Repository
