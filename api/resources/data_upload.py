@@ -43,8 +43,6 @@ class DataUpload(Resource):
             df_cleaned, df_removed = utilsFuntions.remove_rows_with_nan(df)
 
             # Crear tabla si no existe e insertar datos por lotes
-            #db_path = os.environ.get('DUCKDB_PATH', '../data/duckdb/db/data.db')
-            #con = duckdb.connect(db_path)
             batch_size = 1000
             total_rows = len(df_cleaned)
             print(f"Total de filas: {total_rows}")
@@ -54,8 +52,6 @@ class DataUpload(Resource):
                 batch = df_cleaned.iloc[start:end]
                 placeholders = ','.join(['?'] * len(batch.columns))
                 duckDBRunner.executemany_query(f"INSERT INTO {table_name} VALUES ({placeholders})",batch.values.tolist())
-                #con.executemany()
-            #con.close()
 
             # Guardar filas removidas localmente si existen
             if len(df_removed) > 0:
