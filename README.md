@@ -353,6 +353,8 @@ Gets a report of departments that hired more employees than the average for a sp
 ### Environment Variables
 - `PORT`: Port where the application will run (default: 8081)
 - `DUCKDB_PATH`: Path to the DuckDB database file (default: ../data/duckdb/db/data.db)
+- `DUCKDB_DDL_PATH`: Path to the DuckDB DDL files (default: ../data/duckdb/ddl)
+- `REMOVED_FILES_PATH`: Path to store removed files (default: ../data/csv/)
 
 ### Data Structure
 The application expects CSV files with the following structures:
